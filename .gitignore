@@ -18,8 +18,8 @@ frontend/out/
 *.log
 
 # Data and vector databases
-data/*
-!data/**/.gitkeep
+# data/*
+# !data/**/.gitkeep
 *.faiss
 *.pkl
 

@@ -1,10 +1,9 @@
-from fastapi import FastAPI
 from dotenv import load_dotenv
+load_dotenv()
 
+from fastapi import FastAPI
 from routes.ask import router as ask_router
 from routes.index import router as index_router
-
-load_dotenv()
 
 app = FastAPI(title="AI Codebase Assistant")
 

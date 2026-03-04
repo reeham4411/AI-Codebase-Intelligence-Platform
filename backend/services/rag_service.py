@@ -1,8 +1,15 @@
-import os
-from langchain_openai import ChatOpenAI
+from transformers import pipeline
 
 from rag.rag_pipeline import index_repository
 from rag.retriever import retrieve_chunks
+
+
+# local lightweight LLM (~250MB)
+generator = pipeline(
+    "text2text-generation",
+    model="google/flan-t5-base",
+    max_length=256
+)
 
 
 def index_repo(repo_path: str):
@@ -14,7 +21,7 @@ def index_repo(repo_path: str):
 
 def answer_question(question: str):
 
-    # Retrieve relevant code chunks
+    # retrieve relevant code chunks
     context_chunks, sources = retrieve_chunks(question)
 
     context_text = "\n\n".join(context_chunks)
@@ -30,14 +37,11 @@ CODE CONTEXT:
 QUESTION:
 {question}
 
-Answer clearly and reference files when possible.
+Explain clearly and mention relevant files if possible.
 """
 
-    llm = ChatOpenAI(
-        model=os.getenv("MODEL_NAME", "gpt-4o-mini"),
-        temperature=0
-    )
+    result = generator(prompt)
 
-    response = llm.invoke(prompt)
+    answer = result[0]["generated_text"]
 
-    return response.content, list(set(sources))
+    return answer, list(set(sources))
