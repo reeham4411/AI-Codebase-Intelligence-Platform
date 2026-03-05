@@ -1,0 +1,99 @@
+{
+  "name": "GitHub Auto Index - AI Codebase Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-webhook",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "name": "GitHub Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "notes": "Receives push events from GitHub. Configure this webhook URL in your GitHub repo settings: Settings > Webhooks > Add webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.ref }}",
+              "operation": "contains",
+              "value2": "main"
+            }
+          ]
+        }
+      },
+      "name": "Check if Main Branch",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "notes": "Only index when push is to the main branch"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/index-repo",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "github_url",
+              "value": "={{ $json.repository.html_url }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "name": "Trigger Re-Index",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [690, 200],
+      "notes": "Calls the backend API to clone/pull and re-index the repository"
+    },
+    {
+      "parameters": {
+        "channel": "#dev-notifications",
+        "text": "🔄 *Auto-indexed repository:* {{ $json.repository.full_name }}\n*Branch:* {{ $json.ref }}\n*Pushed by:* {{ $json.pusher.name }}\n*Commits:* {{ $json.commits.length }}\n\nThe AI codebase assistant is now up-to-date!",
+        "otherOptions": {}
+      },
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [910, 200],
+      "notes": "Optional: sends a notification to Slack when re-indexing completes. Requires Slack credentials in n8n."
+    },
+    {
+      "parameters": {},
+      "name": "Skip - Not Main Branch",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [690, 400]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook Trigger": {
+      "main": [
+        [{ "node": "Check if Main Branch", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check if Main Branch": {
+      "main": [
+        [{ "node": "Trigger Re-Index", "type": "main", "index": 0 }],
+        [{ "node": "Skip - Not Main Branch", "type": "main", "index": 0 }]
+      ]
+    },
+    "Trigger Re-Index": {
+      "main": [
+        [{ "node": "Notify Slack", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

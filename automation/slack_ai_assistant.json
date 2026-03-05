@@ -1,0 +1,121 @@
+{
+  "name": "Slack AI Code Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-command",
+        "responseMode": "lastNode",
+        "responseData": "allEntries"
+      },
+      "name": "Slack Slash Command",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "notes": "Receives /ask slash commands from Slack. Set this webhook URL as your Slack slash command Request URL."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Has Question?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/ask",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Ask AI Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [690, 200],
+      "notes": "Sends the question to the AI Codebase Intelligence backend"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response_type",
+              "value": "in_channel"
+            },
+            {
+              "name": "text",
+              "value": "📖 *Question:* {{ $node['Slack Slash Command'].json.text }}\n\n🤖 *Answer:*\n{{ $json.answer }}\n\n📁 *Sources:*\n{{ $json.sources.join('\\n• ') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [910, 200],
+      "notes": "Formats the AI response for Slack display"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response_type",
+              "value": "ephemeral"
+            },
+            {
+              "name": "text",
+              "value": "❓ Please provide a question. Usage: `/ask how does authentication work?`"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "No Question Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [690, 400]
+    }
+  ],
+  "connections": {
+    "Slack Slash Command": {
+      "main": [
+        [{ "node": "Has Question?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Question?": {
+      "main": [
+        [{ "node": "Ask AI Backend", "type": "main", "index": 0 }],
+        [{ "node": "No Question Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Ask AI Backend": {
+      "main": [
+        [{ "node": "Format Response", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
