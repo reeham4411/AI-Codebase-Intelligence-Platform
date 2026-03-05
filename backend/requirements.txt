@@ -3,5 +3,5 @@ uvicorn
 numpy
 faiss-cpu
 sentence-transformers
-transformers
-torch
+groq
+python-dotenv

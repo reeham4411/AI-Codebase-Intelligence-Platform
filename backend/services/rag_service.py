@@ -1,15 +1,12 @@
-from transformers import pipeline
+import os
+from groq import Groq
 
 from rag.rag_pipeline import index_repository
 from rag.retriever import retrieve_chunks
 
 
-# local lightweight LLM (~250MB)
-generator = pipeline(
-    "text2text-generation",
-    model="google/flan-t5-base",
-    max_length=256
-)
+# Groq API client - free, fast, cloud-based LLM
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 def index_repo(repo_path: str):
@@ -26,22 +23,27 @@ def answer_question(question: str):
 
     context_text = "\n\n".join(context_chunks)
 
-    prompt = f"""
-You are an AI assistant that helps developers understand a codebase.
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an AI assistant that helps developers understand a codebase. "
+                       "Explain clearly and mention relevant files if possible."
+        },
+        {
+            "role": "user",
+            "content": f"Based on the following code snippets, answer my question.\n\n"
+                       f"CODE CONTEXT:\n{context_text}\n\n"
+                       f"QUESTION: {question}"
+        }
+    ]
 
-Use the following code snippets to answer the question.
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages,
+        max_tokens=512,
+        temperature=0.3,
+    )
 
-CODE CONTEXT:
-{context_text}
-
-QUESTION:
-{question}
-
-Explain clearly and mention relevant files if possible.
-"""
-
-    result = generator(prompt)
-
-    answer = result[0]["generated_text"]
+    answer = response.choices[0].message.content
 
     return answer, list(set(sources))
