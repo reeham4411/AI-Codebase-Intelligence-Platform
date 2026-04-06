@@ -16,8 +16,8 @@ def search_code(query: str, k: int = 5):
     results = []
     for chunk, source in zip(context_chunks, sources):
         results.append({
-            "file_path": source,
-            "code_snippet": chunk,
+            "source": source,
+            "content": chunk,
         })
 
     return results

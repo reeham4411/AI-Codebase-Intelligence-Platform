@@ -3,9 +3,14 @@
 import { useState, useEffect } from "react";
 import { cloneAndIndex, listRepos, deleteRepo } from "../lib/api";
 
+type RepoItem = {
+  name: string;
+  path: string;
+};
+
 export default function ReposPage() {
   const [repoUrl, setRepoUrl] = useState("");
-  const [repos, setRepos] = useState<string[]>([]);
+  const [repos, setRepos] = useState<RepoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [cloneStatus, setCloneStatus] = useState("");
   const [error, setError] = useState("");
@@ -45,11 +50,11 @@ export default function ReposPage() {
     }
   }
 
-  async function handleDelete(name: string) {
-    if (!confirm(`Delete repository "${name}"? This cannot be undone.`)) return;
+  async function handleDelete(repo: RepoItem) {
+    if (!confirm(`Delete repository "${repo.name}"? This cannot be undone.`)) return;
 
     try {
-      await deleteRepo(name);
+      await deleteRepo(repo.name);
       fetchRepos();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete");
@@ -187,7 +192,7 @@ export default function ReposPage() {
           <div className="space-y-2">
             {repos.map((repo) => (
               <div
-                key={repo}
+                key={repo.name}
                 className="flex items-center justify-between p-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -204,7 +209,7 @@ export default function ReposPage() {
                       d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
                     />
                   </svg>
-                  <span className="text-sm font-medium">{repo}</span>
+                  <span className="text-sm font-medium">{repo.name}</span>
                 </div>
                 <button
                   onClick={() => handleDelete(repo)}
